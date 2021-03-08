@@ -22,6 +22,7 @@
 using namespace std;
 
 #define buf_size 1000
+#define send_size 15
 
 void sendFile(string fileName, long fileSize, int outToClient);
 
@@ -61,15 +62,18 @@ int main(int argc, char *argv[])
     err = listen(socketfd, 1);
         if(err < 0)
             printf("Error, could not listen\n");
-    printf("connected\n");
+    
     //saves size in socklen_t struct
     socklen_t c_size = sizeof(cli_addr);
+
     while(1) { //Revurdere om den skal loop mere/mindre.
         printf("Waiting for client accept\n");
         c_socketfd = accept(socketfd, (struct sockaddr *) &cli_addr, &c_size);
         printf("Accepted\n");
+
         read(c_socketfd, path_buf, buf_size);
         printf("Filename: %s\n", path_buf);
+        
         int long file_size;
         file_size = check_File_Exists(path_buf);
         printf("Filesize: %ld\n", file_size);
@@ -80,29 +84,36 @@ int main(int argc, char *argv[])
         else {
             //***Send size of file to client ***
             err = sprintf(buffer, "%ld", file_size);
-            printf("sccan errno: %d\n", err);
-            printf("Buf_size: %ld\n", strlen(buffer));
+            if(err < 0 )
+                printf("sccan errno: %d\n", err);
+
+
             write(c_socketfd, buffer, strlen(buffer) + 1);
 
             //*** Send file to client in packages of 1000 bytes ***
             //amount of packages
-            int cycles = round(file_size/1000 +0.5);
-            printf("Cycles: %d\n", cycles);
+            // int cycles = round(file_size/send_size +0.5);
+            // printf("Cycles: %d\n", cycles);
+
             //Input file = read from file
             ifstream myFile;
             myFile.open(path_buf, ios::in | ios::binary);
-            //int pcounter = 0;
+
             //Runs amount of packages
-            for (int i = 0; i < cycles; i++) 
+            // for (int i = 0; i < cycles; i++) 
+            while (buffer > 0)
             {
                 //Read from pointer and onwards 1000 bytes
-                //myFile.read(buffer, buf_size);
-                myFile >> buffer;
+                myFile.read(buffer, buf_size); //change
+
+
                 //Write file package to client
                 //cout << buffer;
                 write(c_socketfd, buffer, strlen(buffer) + 1);
                 //Set pointer in file
-                //myFile.seekg(strlen(buffer), myFile.cur);
+                myFile.seekg(strlen(buffer), myFile.cur);
+                //cout << strlen(buffer) << ":" << buffer << endl;
+                cout << buffer << endl;
             }
             myFile.close();
             close(c_socketfd);  
