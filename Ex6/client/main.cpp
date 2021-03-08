@@ -17,10 +17,9 @@
 #include <netdb.h>
 #include "iknlib.h"
 #include <cmath>
-#include <netinet/in.h>
 #include <arpa/inet.h>
 #define buf_size 1000
-
+#define send_size 15
 using namespace std;
 
 
@@ -83,26 +82,27 @@ int main(int argc, char *argv[])
 
 	printf("Filesize: %d\n", file_size);
 
-	int cycles = round(file_size/1000 +0.5);
-	printf("Cycles: %d\n", cycles);
+	// int cycles = round(file_size/send_size + 0.5);
+	// printf("Cycles: %d\n", cycles);
 
 	ofstream myFile;
 	//const char *filename_buf = "Copyfile.png";
 	myFile.open(argv[2], ios::out | ios::binary);
 	printf("Empty file made\n");
 	//int pcounter = 0;
-	for (int i = 0; i < cycles; i++) 
+	// for (int i = 0; i < cycles; i++)
+	int ret;
+	while (buffer > 0) 
 	{
-		//Read file package to client
-		read(s_socketfd, buffer, buf_size);
-		//Read from pointer and onwards 1000 bytes
-		//myFile.write(buffer, strlen(buffer));
-		cout << buffer;
-		myFile.seekp(0, myFile.end);
-		myFile << buffer;
-		//Set pointer in file
-		//myFile.seekp(strlen(buffer), myFile.cur);
-		//printf("Current position: %d\n", myFile.tellp());
+		//Read file package from server
+		ret = read(s_socketfd, buffer, buf_size);
+		if (ret < 0)
+			cout << "Error with read" << endl;
+		else
+		{
+			myFile.write(buffer, ret);
+			cout << buffer << endl;
+		}	
 
 	}
 	myFile.close();
