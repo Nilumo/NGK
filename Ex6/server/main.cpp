@@ -42,13 +42,20 @@ int main(int argc, char *argv[])
     char path_buf[buf_size] {}, buffer[buf_size] {};
     int portno = 9000, socketfd, c_socketfd, err;
     struct sockaddr_in serv_addr, cli_addr;
-    serv_addr.sin_addr.s_addr = 0;
+
+
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = htons(portno);
 
     socketfd = socket(AF_INET, SOCK_STREAM, 0);
-
+    if (socketfd < 0) 
+        error("ERROR opening socket");
+    
     //Bind fd and portno
-    bind(socketfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
+    if (bind(socketfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
+        error("ERROR on binding");
+
     printf("Starts to listen\n");
     //Listens for client initiation
     err = listen(socketfd, 1);
@@ -58,43 +65,53 @@ int main(int argc, char *argv[])
     //saves size in socklen_t struct
     socklen_t c_size = sizeof(cli_addr);
     while(1) { //Revurdere om den skal loop mere/mindre.
+        printf("Waiting for client accept\n");
         c_socketfd = accept(socketfd, (struct sockaddr *) &cli_addr, &c_size);
         printf("Accepted\n");
         read(c_socketfd, path_buf, buf_size);
+        printf("Filename: %s\n", path_buf);
         int long file_size;
         file_size = check_File_Exists(path_buf);
+        printf("Filesize: %ld\n", file_size);
         if (file_size == 0) {
             error("File does not exist\n");
             write(c_socketfd,"File does not exist", 19+1);
         }
         else {
             //***Send size of file to client ***
-            sscanf(buffer, "%ld", &file_size);
+            err = sprintf(buffer, "%ld", file_size);
+            printf("sccan errno: %d\n", err);
+            printf("Buf_size: %ld\n", strlen(buffer));
             write(c_socketfd, buffer, strlen(buffer) + 1);
 
             //*** Send file to client in packages of 1000 bytes ***
             //amount of packages
             int cycles = round(file_size/1000 +0.5);
-
+            printf("Cycles: %d\n", cycles);
             //Input file = read from file
             ifstream myFile;
             myFile.open(path_buf, ios::in | ios::binary);
-
+            //int pcounter = 0;
             //Runs amount of packages
             for (int i = 0; i < cycles; i++) 
             {
-                //Set pointer in file
-                myFile.seekg(i*1000);
                 //Read from pointer and onwards 1000 bytes
-                myFile.read(buffer, buf_size);
+                //myFile.read(buffer, buf_size);
+                myFile >> buffer;
                 //Write file package to client
+                //cout << buffer;
                 write(c_socketfd, buffer, strlen(buffer) + 1);
+                //Set pointer in file
+                //myFile.seekg(strlen(buffer), myFile.cur);
             }
-            myFile.close();  
+            myFile.close();
+            close(c_socketfd);  
         }
     }
-    close(c_socketfd);
+    
     close(socketfd);
+
+    return 0;
 }
 
 /**
