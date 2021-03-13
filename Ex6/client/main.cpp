@@ -19,7 +19,7 @@
 #include <cmath>
 #include <arpa/inet.h>
 #define buf_size 1000
-#define send_size 15
+#define send_size 2
 using namespace std;
 
 
@@ -52,10 +52,7 @@ int main(int argc, char *argv[])
 	printf("Server name: %s\n", server->h_name);
 	printf("Socket and adress set\n");
 
-
-
-
-	//Cope adress and size from hostens struct to sockaddr struct.
+	//Copy adress and size from hostens struct to sockaddr struct.
     bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
 
 
@@ -67,8 +64,7 @@ int main(int argc, char *argv[])
 		printf("Error connecting\n");
 	printf("Connected\n");
 	//*** Send path to server ***
-
-	printf("Size arg2: %ld\n", strlen(argv[2]));
+	//printf("Size arg2: %ld\n", strlen(argv[2]));
 
 	writeTextTCP(s_socketfd, argv[2]);
 
@@ -82,28 +78,29 @@ int main(int argc, char *argv[])
 
 	printf("Filesize: %d\n", file_size);
 
-	// int cycles = round(file_size/send_size + 0.5);
-	// printf("Cycles: %d\n", cycles);
+	int cycles = round(file_size/buf_size + 0.5);
+	printf("Cycles: %d\n", cycles);
 
 	ofstream myFile;
 	//const char *filename_buf = "Copyfile.png";
 	myFile.open(argv[2], ios::out | ios::binary);
-	printf("Empty file made\n");
-	//int pcounter = 0;
-	// for (int i = 0; i < cycles; i++)
+	//printf("Empty file made\n");
+
+	bzero(buffer, buf_size);
+	
 	int ret;
-	while (buffer > 0) 
-	{
+	
+	for (int i = 0; i < cycles; i++) {	
 		//Read file package from server
 		ret = read(s_socketfd, buffer, buf_size);
 		if (ret < 0)
-			cout << "Error with read" << endl;
+			cout << "Error with read\n";
 		else
 		{
 			myFile.write(buffer, ret);
-			cout << buffer << endl;
+			cout << "Buffer: \n"  << buffer << "\nReturnvalue: " << ret << endl;
+			//cout << "Package" << (i+1) << endl;
 		}	
-
 	}
 	myFile.close();
 	close(s_socketfd);
@@ -112,5 +109,3 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
-
-
