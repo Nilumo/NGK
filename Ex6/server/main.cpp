@@ -22,7 +22,7 @@
 using namespace std;
 
 #define buf_size 1000
-#define send_size 15
+#define send_size 2
 
 void sendFile(string fileName, long fileSize, int outToClient);
 
@@ -92,28 +92,31 @@ int main(int argc, char *argv[])
 
             //*** Send file to client in packages of 1000 bytes ***
             //amount of packages
-            // int cycles = round(file_size/send_size +0.5);
-            // printf("Cycles: %d\n", cycles);
+            int cycles = round(file_size/buf_size +0.5);
+            int ret;
+            printf("Cycles: %d\n", cycles);
 
             //Input file = read from file
             ifstream myFile;
             myFile.open(path_buf, ios::in | ios::binary);
 
             //Runs amount of packages
-            // for (int i = 0; i < cycles; i++) 
-            while (buffer > 0)
+            for (int i = 0; i < cycles; i++) 
             {
                 //Read from pointer and onwards 1000 bytes
                 myFile.read(buffer, buf_size); //change
-
-
+                
                 //Write file package to client
                 //cout << buffer;
-                write(c_socketfd, buffer, strlen(buffer) + 1);
+                //ret = write(c_socketfd, buffer, strlen(buffer));
+                ret = send(c_socketfd, buffer, strlen(buffer), 0);
+                if (ret < 0) 
+                    cout << "ERROR writing to socket\n";
                 //Set pointer in file
-                myFile.seekg(strlen(buffer), myFile.cur);
+                //myFile.seekg(strlen(buffer), myFile.cur);
                 //cout << strlen(buffer) << ":" << buffer << endl;
-                cout << buffer << endl;
+                cout << "Buffer: \n"  << buffer << "\nReturnvalue: " << ret << endl;
+                //cout << "Package" << (i+1) << endl;
             }
             myFile.close();
             close(c_socketfd);  
