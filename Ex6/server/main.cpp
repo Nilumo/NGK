@@ -38,12 +38,13 @@ void sendFile(string fileName, long fileSize, int outToClient);
  * @throws IOException
  *
  */
+
 int main(int argc, char *argv[])
 {
     char path_buf[buf_size] {}, buffer[buf_size] {};
-    int portno = 9000, socketfd, c_socketfd, err;
+    int portno = 9000, socketfd, c_socketfd, err, ret, rest, cycles;
     struct sockaddr_in serv_addr, cli_addr;
-
+    int long file_size;
 
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
@@ -57,8 +58,8 @@ int main(int argc, char *argv[])
     if (bind(socketfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
         error("ERROR on binding");
 
-    printf("Starts to listen\n");
     //Listens for client initiation
+    printf("Starts to listen\n");
     err = listen(socketfd, 1);
         if(err < 0)
             printf("Error, could not listen\n");
@@ -66,17 +67,19 @@ int main(int argc, char *argv[])
     //saves size in socklen_t struct
     socklen_t c_size = sizeof(cli_addr);
 
-    while(1) { //Revurdere om den skal loop mere/mindre.
+    //Server stays open, listening for client-requests
+    while(1) { 
         printf("Waiting for client accept\n");
+        
         c_socketfd = accept(socketfd, (struct sockaddr *) &cli_addr, &c_size);
         printf("Accepted\n");
 
         read(c_socketfd, path_buf, buf_size);
         printf("Filename: %s\n", path_buf);
         
-        int long file_size;
         file_size = check_File_Exists(path_buf);
         printf("Filesize: %ld\n", file_size);
+
         if (file_size == 0) {
             error("File does not exist\n");
             write(c_socketfd,"File does not exist", 19+1);
@@ -87,13 +90,13 @@ int main(int argc, char *argv[])
             if(err < 0 )
                 printf("sccan errno: %d\n", err);
 
-
             write(c_socketfd, buffer, strlen(buffer) + 1);
 
             //*** Send file to client in packages of 1000 bytes ***
             //amount of packages
-            int cycles = round(file_size/buf_size +0.5);
-            int ret;
+            cycles = round(file_size/buf_size + 0.5);
+            rest = file_size % buf_size;
+
             printf("Cycles: %d\n", cycles);
 
             //Input file = read from file
@@ -101,23 +104,29 @@ int main(int argc, char *argv[])
             myFile.open(path_buf, ios::in | ios::binary);
 
             //Runs amount of packages
-            for (int i = 0; i < cycles; i++) 
+            for (int i = 0; i < (cycles-1); i++) 
             {
                 //Read from pointer and onwards 1000 bytes
                 myFile.read(buffer, buf_size); //change
                 
                 //Write file package to client
-                //cout << buffer;
                 //ret = write(c_socketfd, buffer, strlen(buffer));
-                ret = send(c_socketfd, buffer, strlen(buffer), 0);
-                if (ret < 0) 
+                ret = send(c_socketfd, buffer, buf_size, 0);
+                if (ret < 0)
                     cout << "ERROR writing to socket\n";
                 //Set pointer in file
                 //myFile.seekg(strlen(buffer), myFile.cur);
-                //cout << strlen(buffer) << ":" << buffer << endl;
-                cout << "Buffer: \n"  << buffer << "\nReturnvalue: " << ret << endl;
-                //cout << "Package" << (i+1) << endl;
+                
+                cout << "Package " << (i+1) << ": " << ret << " bytes sent\n";
             }
+
+            //
+            myFile.read(buffer, rest);
+            ret = send(c_socketfd, buffer, rest, 0);
+            if (ret < 0)
+                    cout << "ERROR writing to socket\n";
+            cout << "Package " << cycles << ": " << ret << " bytes sent\n";
+
             myFile.close();
             close(c_socketfd);  
         }
