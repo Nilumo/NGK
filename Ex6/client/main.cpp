@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
 {
 	printf("Program started\n");
 	printf("Arg1: %s \nArg2: %s\n",argv[1],argv[2]);
-	int s_socketfd, portno = 9000, err;
+	int s_socketfd, portno = 9000, err, ret, cycles;
     struct sockaddr_in serv_addr;
 	//Fill struct with zeroes
 	bzero((char *) &serv_addr, sizeof(serv_addr));
@@ -78,28 +78,27 @@ int main(int argc, char *argv[])
 
 	printf("Filesize: %d\n", file_size);
 
-	int cycles = round(file_size/buf_size + 0.5);
+	cycles = round(file_size/buf_size + 0.5);
 	printf("Cycles: %d\n", cycles);
 
 	ofstream myFile;
 	//const char *filename_buf = "Copyfile.png";
 	myFile.open(argv[2], ios::out | ios::binary);
 	//printf("Empty file made\n");
-
-	bzero(buffer, buf_size);
-	
-	int ret;
 	
 	for (int i = 0; i < cycles; i++) {	
 		//Read file package from server
+		//bzero(buffer, buf_size);
 		ret = read(s_socketfd, buffer, buf_size);
 		if (ret < 0)
 			cout << "Error with read\n";
 		else
 		{
+			//cout << "Buffer: \n"  << buffer << "\n
+			cout << "Returnvalue: " << ret << endl;
 			myFile.write(buffer, ret);
-			cout << "Buffer: \n"  << buffer << "\nReturnvalue: " << ret << endl;
-			//cout << "Package" << (i+1) << endl;
+			
+			cout << "Package " << (i+1) << ": " << ret << " bytes recieved\n";
 		}	
 	}
 	myFile.close();
