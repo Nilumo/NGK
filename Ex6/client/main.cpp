@@ -26,7 +26,7 @@ using namespace std;
 int main(int argc, char *argv[])
 {
 	printf("Program started\n");
-	printf("Arg1: %s \nArg2: %s\n",argv[1],argv[2]);
+	printf("Portnumber: 9000 \n");
 	int s_socketfd, portno = 9000, err, ret, cycles;
     struct sockaddr_in serv_addr;
 	//Fill struct with zeroes
@@ -50,7 +50,6 @@ int main(int argc, char *argv[])
 		exit(0);
 	}
 	printf("Server name: %s\n", server->h_name);
-	printf("Socket and adress set\n");
 
 	//Copy adress and size from hostens struct to sockaddr struct.
     bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
@@ -62,10 +61,9 @@ int main(int argc, char *argv[])
 	//Connect to server
 	if (connect(s_socketfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
 		printf("Error connecting\n");
-	printf("Connected\n");
-	//*** Send path to server ***
-	//printf("Size arg2: %ld\n", strlen(argv[2]));
+	printf("Connected\n\n");
 
+	//*** Send path to server ***
 	writeTextTCP(s_socketfd, argv[2]);
 
 	// err = write(s_socketfd, argv[2], strlen(argv[2]+1));
@@ -73,35 +71,40 @@ int main(int argc, char *argv[])
     //     	printf("ERROR writing to socket");
 	err = read(s_socketfd, buffer, buf_size);
 	if (err < 0) 
-		error("ERROR reading from socket");
+		printf("ERROR reading from socket\n");
+
 	int file_size = stoi(buffer, nullptr);
 
-	printf("Filesize: %d\n", file_size);
-
-	cycles = round(file_size/buf_size + 0.5);
-	printf("Cycles: %d\n", cycles);
-
-	ofstream myFile;
-	//const char *filename_buf = "Copyfile.png";
-	myFile.open(argv[2], ios::out | ios::binary);
-	//printf("Empty file made\n");
-	
-	for (int i = 0; i < cycles; i++) {	
-		//Read file package from server
-		//bzero(buffer, buf_size);
-		ret = read(s_socketfd, buffer, buf_size);
-		if (ret < 0)
-			cout << "Error with read\n";
-		else
-		{
-			//cout << "Buffer: \n"  << buffer << "\n
-			cout << "Returnvalue: " << ret << endl;
-			myFile.write(buffer, ret);
-			
-			cout << "Package " << (i+1) << ": " << ret << " bytes recieved\n";
-		}	
+	if(file_size == 0) {
+		printf("Error, file doesn't exist\n");
 	}
-	myFile.close();
+	else
+	{
+		printf("Filesize: %d\n", file_size);
+
+		cycles = round(file_size/buf_size + 0.5);
+		printf("Cycles: %d\n", cycles);
+
+		ofstream myFile;
+		//const char *filename_buf = "Copyfile.png";
+		myFile.open(argv[2], ios::out | ios::binary);
+		
+		for (int i = 0; i < cycles; i++) {	
+			//Read file package from server
+			ret = read(s_socketfd, buffer, buf_size);
+			if (ret < 0)
+				cout << "Error with read\n";
+			else
+			{
+				myFile.write(buffer, ret);
+
+				cout << "Package " << (i+1) << ": " << ret << " bytes recieved\n";
+			}	
+		}
+
+		myFile.close();
+	}
+		
 	close(s_socketfd);
 
 	printf("Program done\n");
