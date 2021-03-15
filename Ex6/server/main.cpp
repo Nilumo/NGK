@@ -22,9 +22,8 @@
 using namespace std;
 
 #define buf_size 1000
-#define send_size 2
 
-void sendFile(string fileName, long fileSize, int outToClient);
+void sendFile(char *path_buf, long file_size, int c_socketfd);
 
 /**
  * main starter serveren og venter på en forbindelse fra en klient
@@ -34,8 +33,6 @@ void sendFile(string fileName, long fileSize, int outToClient);
  * Hvis filen findes sendes den nu til klienten
  *
  * HUSK at lukke forbindelsen til klienten og filen nÃ¥r denne er sendt til klienten
- *
- * @throws IOException
  *
  */
 
@@ -59,7 +56,7 @@ int main(int argc, char *argv[])
         error("ERROR on binding");
 
     //Listens for client initiation
-    printf("Starts to listen\n");
+    printf("Listening\n");
     err = listen(socketfd, 1);
         if(err < 0)
             printf("Error, could not listen\n");
@@ -70,7 +67,7 @@ int main(int argc, char *argv[])
     //Server stays open, listening for client-requests
     while(1) { 
         printf("Waiting for client accept\n");
-        
+
         c_socketfd = accept(socketfd, (struct sockaddr *) &cli_addr, &c_size);
         printf("Accepted\n");
 
@@ -78,13 +75,16 @@ int main(int argc, char *argv[])
         printf("Filename: %s\n", path_buf);
         
         file_size = check_File_Exists(path_buf);
-        printf("Filesize: %ld\n", file_size);
 
         if (file_size == 0) {
-            error("File does not exist\n");
-            write(c_socketfd,"File does not exist", 19+1);
+            //sprintf(buffer, "1");
+            printf("File does not exist, returning 0\n\n");
+            write(c_socketfd, "0", 1+1);
         }
-        else {
+        else 
+        {
+            printf("Filesize: %ld\n", file_size);
+
             //***Send size of file to client ***
             err = sprintf(buffer, "%ld", file_size);
             if(err < 0 )
@@ -120,16 +120,18 @@ int main(int argc, char *argv[])
                 cout << "Package " << (i+1) << ": " << ret << " bytes sent\n";
             }
 
-            //
+            //Last iteration
             myFile.read(buffer, rest);
             ret = send(c_socketfd, buffer, rest, 0);
             if (ret < 0)
                     cout << "ERROR writing to socket\n";
+            
             cout << "Package " << cycles << ": " << ret << " bytes sent\n";
 
             myFile.close();
-            close(c_socketfd);  
         }
+
+        close(c_socketfd); 
     }
     
     close(socketfd);
@@ -144,8 +146,45 @@ int main(int argc, char *argv[])
  * @param fileSize Størrelsen på filen, 0 hvis den ikke findes
  * @param outToClient Stream som der skrives til socket
      */
-void sendFile(string fileName, long fileSize, int outToClient)
+void sendFile(char *path_buf, long file_size, int c_socketfd)
 {
-    // TO DO Your own code
+    // int cycles, rest, ret;
+    // char buffer[buf_size];
+    // //*** Send file to client in packages of 1000 bytes ***
+    // //amount of packages
+    // cycles = round(file_size/buf_size + 0.5);
+    // rest = file_size % buf_size;
+
+    // printf("Cycles: %d\n", cycles);
+
+    // //Input file = read from file
+    // ifstream myFile;
+    // myFile.open(path_buf, ios::in | ios::binary);
+
+    // //Runs amount of packages
+    // for (int i = 0; i < (cycles-1); i++) 
+    // {
+    //     //Read from pointer and onwards 1000 bytes
+    //     myFile.read(buffer, buf_size); //change
+        
+    //     //Write file package to client
+    //     //ret = write(c_socketfd, buffer, strlen(buffer));
+    //     ret = send(c_socketfd, buffer, buf_size, 0);
+    //     if (ret < 0)
+    //         cout << "ERROR writing to socket\n";
+    //     //Set pointer in file
+    //     //myFile.seekg(strlen(buffer), myFile.cur);
+        
+    //     cout << "Package " << (i+1) << ": " << ret << " bytes sent\n";
+    // }
+
+    // //Last iteration
+    // myFile.read(buffer, rest);
+    // ret = send(c_socketfd, buffer, rest, 0);
+    // if (ret < 0)
+    //         cout << "ERROR writing to socket\n";
+    // cout << "Package " << cycles << ": " << ret << " bytes sent\n";
+
+    // myFile.close();
 }
 
